@@ -1,7 +1,28 @@
-use levenberg_marquardt::LeastSquaresProblem;
+use levenberg_marquardt::{LeastSquaresProblem, LevenbergMarquardt};
 use nalgebra::storage::Owned;
 use nalgebra::{Dim, Dynamic, MatrixMN, Vector3, VectorN, U1, U3};
 
+#[derive(Debug, Copy, Clone)]
+pub struct Measurement {
+    x: f64,
+    n: f64,
+}
+
+impl Measurement {
+    pub fn concurrency_and_latency(n: f64, r: f64) -> Measurement {
+        Measurement { x: n / r, n }
+    }
+
+    pub fn concurrency_and_throughput(n: f64, x: f64) -> Measurement {
+        Measurement { x, n }
+    }
+
+    pub fn throughput_and_latency(x: f64, r: f64) -> Measurement {
+        Measurement { x, n: x * r }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct Model {
     pub sigma: f64,
     pub kappa: f64,
@@ -9,6 +30,23 @@ pub struct Model {
 }
 
 impl Model {
+    pub fn build(measurements: &[Measurement]) -> Model {
+        let measurements: Vec<(f64, f64)> = measurements.iter().map(|m| (m.n, m.x)).collect();
+        let problem = ModelProblem {
+            params: Vector3::new(
+                0.1,
+                0.01,
+                measurements.iter().map(|&(n, x)| x / n).fold(f64::NEG_INFINITY, f64::max),
+            ),
+            measurements,
+        };
+
+        let (result, report) = LevenbergMarquardt::new().minimize(problem);
+        assert!(report.termination.was_successful());
+
+        Model { sigma: result.params.x, kappa: result.params.y, lambda: result.params.z }
+    }
+
     pub fn concurrency_to_throughput(&self, n: f64) -> f64 {
         (self.lambda * n) / (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0)))
     }
@@ -47,15 +85,12 @@ impl LeastSquaresProblem<f64, Dynamic, U3> for ModelProblem {
     }
 
     fn jacobian(&self) -> Option<MatrixMN<f64, Dynamic, U3>> {
-        let mut p = self.clone();
-        levenberg_marquardt::differentiate_numerically(&mut p)
+        levenberg_marquardt::differentiate_numerically(&mut self.clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use levenberg_marquardt::LevenbergMarquardt;
-
     use super::*;
 
     const MEASUREMENTS: [(f64, f64); 32] = [
@@ -94,22 +129,13 @@ mod tests {
     ];
 
     #[test]
-    fn bug_fuck() {
-        let problem = ModelProblem {
-            params: Vector3::new(
-                0.1,
-                0.01,
-                MEASUREMENTS.iter().map(|(n, x)| x / n).fold(f64::NEG_INFINITY, f64::max),
-            ),
-            measurements: MEASUREMENTS.to_vec(),
-        };
-
-        let (result, report) = LevenbergMarquardt::new().minimize(problem);
-
-        println!("{:?}, {:?}", result.params, report);
-
-        let model =
-            Model { sigma: result.params.x, kappa: result.params.y, lambda: result.params.z };
+    fn build() {
+        let measurements: Vec<Measurement> = MEASUREMENTS
+            .iter()
+            .map(|&(n, x)| Measurement::concurrency_and_throughput(n, x))
+            .collect();
+        let model = Model::build(&measurements);
+        println!("{:?}", model);
         for &(n, x) in MEASUREMENTS.iter() {
             println!("{} / {} / {}", n, x, model.concurrency_to_throughput(n));
         }
