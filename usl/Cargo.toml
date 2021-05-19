@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 levenberg-marquardt = "0.8"
-nalgebra = "0.25"
+nalgebra = "0.26"
 simba = "0.4"
 
 [dev-dependencies]
