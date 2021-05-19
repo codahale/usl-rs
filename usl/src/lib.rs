@@ -91,7 +91,24 @@ impl LeastSquaresProblem<f64, Dynamic, U3> for ModelProblem {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
+
     use super::*;
+
+    #[test]
+    fn build() {
+        let measurements: Vec<Measurement> = MEASUREMENTS
+            .iter()
+            .map(|&(n, x)| Measurement::concurrency_and_throughput(n, x))
+            .collect();
+
+        let model = Model::build(&measurements);
+
+        // This is what these parameters _should_ be. They're definitely not those.
+        assert_relative_eq!(model.sigma, 0.02671591, epsilon = 0.1);
+        assert_relative_eq!(model.kappa, 7.690945e-4, epsilon = 0.1);
+        assert_relative_eq!(model.lambda, 995.6486, epsilon = 100.0);
+    }
 
     const MEASUREMENTS: [(f64, f64); 32] = [
         (1.0, 955.16),
@@ -127,17 +144,4 @@ mod tests {
         (31.0, 12140.4),
         (32.0, 12074.39),
     ];
-
-    #[test]
-    fn build() {
-        let measurements: Vec<Measurement> = MEASUREMENTS
-            .iter()
-            .map(|&(n, x)| Measurement::concurrency_and_throughput(n, x))
-            .collect();
-        let model = Model::build(&measurements);
-        println!("{:?}", model);
-        for &(n, x) in MEASUREMENTS.iter() {
-            println!("{} / {} / {}", n, x, model.concurrency_to_throughput(n));
-        }
-    }
 }
