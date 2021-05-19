@@ -7,5 +7,4 @@ edition = "2018"
 [dependencies]
 levenberg-marquardt = "0.8"
 nalgebra = "0.25"
-simba = "0.4"
 approx = "0.4"
