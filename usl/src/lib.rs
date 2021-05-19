@@ -1,7 +1,7 @@
+use approx::relative_eq;
 use levenberg_marquardt::{LeastSquaresProblem, LevenbergMarquardt};
 use nalgebra::storage::Owned;
 use nalgebra::{Dim, Dynamic, MatrixMN, Vector3, VectorN, U1, U3};
-use approx::relative_eq;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
@@ -65,7 +65,7 @@ impl Model {
     }
 
     pub fn latency_at_throughput(&self, x: f64) -> f64 {
-        (self.sigma - 1.0) / (self.sigma*x - self.lambda)
+        (self.sigma - 1.0) / (self.sigma * x - self.lambda)
     }
 
     pub fn throughput_at_latency(&self, r: f64) -> f64 {
