@@ -1,6 +1,7 @@
 use levenberg_marquardt::{LeastSquaresProblem, LevenbergMarquardt};
 use nalgebra::storage::Owned;
 use nalgebra::{Dim, Dynamic, MatrixMN, Vector3, VectorN, U1, U3};
+use approx::relative_eq;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
@@ -47,8 +48,59 @@ impl Model {
         Model { sigma: result.params.x, kappa: result.params.y, lambda: result.params.z }
     }
 
-    pub fn concurrency_to_throughput(&self, n: f64) -> f64 {
+    pub fn throughput_at_concurrency(&self, n: f64) -> f64 {
         (self.lambda * n) / (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0)))
+    }
+
+    pub fn latency_at_concurrency(&self, n: f64) -> f64 {
+        (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0))) / self.lambda
+    }
+
+    pub fn max_concurrency(&self) -> f64 {
+        (((1.0 - self.sigma) / self.kappa).sqrt()).floor()
+    }
+
+    pub fn max_throughput(&self) -> f64 {
+        self.throughput_at_concurrency(self.max_concurrency())
+    }
+
+    pub fn latency_at_throughput(&self, x: f64) -> f64 {
+        (self.sigma - 1.0) / (self.sigma*x - self.lambda)
+    }
+
+    pub fn throughput_at_latency(&self, r: f64) -> f64 {
+        ((self.sigma.powf(2.0)
+            + self.kappa.powf(2.0)
+            + 2.0 * self.kappa * (2.0 * self.lambda * r + self.sigma - 2.0))
+            .sqrt()
+            - self.kappa
+            + self.sigma)
+            / (2.0 * self.kappa * r)
+    }
+
+    pub fn concurrency_at_latency(&self, r: f64) -> f64 {
+        (self.kappa - self.sigma
+            + (self.sigma.powf(2.0)
+                + self.kappa.powf(2.0)
+                + 2.0 * self.kappa * ((2.0 * self.lambda * r) + self.sigma - 2.0))
+                .sqrt())
+            / (2.0 * self.kappa)
+    }
+
+    pub fn concurrency_at_throughput(&self, x: f64) -> f64 {
+        self.latency_at_throughput(x) * x
+    }
+
+    pub fn contention_constrained(&self) -> bool {
+        self.sigma > self.kappa
+    }
+
+    pub fn coherency_constrained(&self) -> bool {
+        self.sigma < self.kappa
+    }
+
+    pub fn limitless(&self) -> bool {
+        relative_eq!(self.kappa, 0.0)
     }
 }
 
@@ -78,7 +130,7 @@ impl LeastSquaresProblem<f64, Dynamic, U3> for ModelProblem {
         );
         let model = Model { sigma: self.params.x, kappa: self.params.y, lambda: self.params.z };
         for (mut residual, &(n, x)) in residuals.row_iter_mut().zip(self.measurements.iter()) {
-            let predicted = model.concurrency_to_throughput(n);
+            let predicted = model.throughput_at_concurrency(n);
             residual[0] = x - predicted;
         }
         Some(residuals)
