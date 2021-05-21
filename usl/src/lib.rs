@@ -157,9 +157,14 @@ mod tests {
         let model = Model::build(&measurements);
 
         // This is what these parameters _should_ be. They're definitely not those.
+        println!("{:?}", model);
         assert_relative_eq!(model.sigma, 0.02671591, epsilon = 0.1);
         assert_relative_eq!(model.kappa, 7.690945e-4, epsilon = 0.1);
         assert_relative_eq!(model.lambda, 995.6486, epsilon = 100.0);
+
+        for &(n, x) in MEASUREMENTS.iter() {
+            println!("{} / {} / {}", n, x, model.throughput_at_concurrency(n));
+        }
     }
 
     const MEASUREMENTS: [(f64, f64); 32] = [
