@@ -69,8 +69,8 @@ impl Model {
     }
 
     pub fn throughput_at_latency(&self, r: f64) -> f64 {
-        ((self.sigma.powf(2.0)
-            + self.kappa.powf(2.0)
+        ((self.sigma.powi(2)
+            + self.kappa.powi(2)
             + 2.0 * self.kappa * (2.0 * self.lambda * r + self.sigma - 2.0))
             .sqrt()
             - self.kappa
@@ -80,8 +80,8 @@ impl Model {
 
     pub fn concurrency_at_latency(&self, r: f64) -> f64 {
         (self.kappa - self.sigma
-            + (self.sigma.powf(2.0)
-                + self.kappa.powf(2.0)
+            + (self.sigma.powi(2)
+                + self.kappa.powi(2)
                 + 2.0 * self.kappa * ((2.0 * self.lambda * r) + self.sigma - 2.0))
                 .sqrt())
             / (2.0 * self.kappa)
