@@ -5,8 +5,7 @@ authors = ["Coda Hale <coda.hale@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-levenberg-marquardt = "0.8"
-nalgebra = "0.25"
+rmpfit = "0.2"
 approx = "0.4"
 
 [dev-dependencies]

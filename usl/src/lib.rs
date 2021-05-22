@@ -1,7 +1,5 @@
 use approx::relative_eq;
-use levenberg_marquardt::{LeastSquaresProblem, LevenbergMarquardt};
-use nalgebra::storage::Owned;
-use nalgebra::{Dim, Dynamic, MatrixMN, Vector3, VectorN, U1, U3};
+use rmpfit::{MPFitter, MPResult};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
@@ -32,20 +30,15 @@ pub struct Model {
 
 impl Model {
     pub fn build(measurements: &[Measurement]) -> Model {
-        let measurements: Vec<(f64, f64)> = measurements.iter().map(|m| (m.n, m.x)).collect();
-        let problem = ModelProblem {
-            params: Vector3::new(
-                0.1,
-                0.01,
-                measurements.iter().map(|&(n, x)| x / n).fold(f64::NEG_INFINITY, f64::max),
-            ),
-            measurements,
-        };
-
-        let (result, report) = LevenbergMarquardt::new().minimize(problem);
-        assert!(report.termination.was_successful());
-
-        Model { sigma: result.params.x, kappa: result.params.y, lambda: result.params.z }
+        let fitter = ModelFitter(measurements.to_vec());
+        let mut params = vec![
+            0.1,
+            0.01,
+            measurements.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max),
+        ];
+        let res = fitter.mpfit(&mut params, None, &Default::default());
+        assert!(res.is_ok());
+        Model { sigma: params[0], kappa: params[1], lambda: params[2] }
     }
 
     pub fn throughput_at_concurrency(&self, n: f64) -> f64 {
@@ -104,40 +97,19 @@ impl Model {
     }
 }
 
-#[derive(Clone)]
-struct ModelProblem {
-    params: Vector3<f64>,
-    measurements: Vec<(f64, f64)>,
-}
+struct ModelFitter(Vec<Measurement>);
 
-impl LeastSquaresProblem<f64, Dynamic, U3> for ModelProblem {
-    type ResidualStorage = Owned<f64, Dynamic>;
-    type JacobianStorage = Owned<f64, Dynamic, U3>;
-    type ParameterStorage = Owned<f64, U3>;
-
-    fn set_params(&mut self, params: &Vector3<f64>) {
-        self.params.copy_from(params)
-    }
-
-    fn params(&self) -> Vector3<f64> {
-        self.params
-    }
-
-    fn residuals(&self) -> Option<VectorN<f64, Dynamic>> {
-        let mut residuals = VectorN::<f64, Dynamic>::zeros_generic(
-            Dynamic::from_usize(self.measurements.len()),
-            U1,
-        );
-        let model = Model { sigma: self.params.x, kappa: self.params.y, lambda: self.params.z };
-        for (mut residual, &(n, x)) in residuals.row_iter_mut().zip(self.measurements.iter()) {
-            let predicted = model.throughput_at_concurrency(n);
-            residual[0] = x - predicted;
+impl MPFitter for ModelFitter {
+    fn eval(&self, params: &[f64], deviates: &mut [f64]) -> MPResult<()> {
+        let model = Model { sigma: params[0], kappa: params[1], lambda: params[2] };
+        for (d, m) in deviates.iter_mut().zip(self.0.iter()) {
+            *d = m.x - model.throughput_at_concurrency(m.n);
         }
-        Some(residuals)
+        Ok(())
     }
 
-    fn jacobian(&self) -> Option<MatrixMN<f64, Dynamic, U3>> {
-        levenberg_marquardt::differentiate_numerically(&mut self.clone())
+    fn number_of_points(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -156,15 +128,9 @@ mod tests {
 
         let model = Model::build(&measurements);
 
-        // This is what these parameters _should_ be. They're definitely not those.
-        println!("{:?}", model);
-        assert_relative_eq!(model.sigma, 0.02671591, epsilon = 0.1);
-        assert_relative_eq!(model.kappa, 7.690945e-4, epsilon = 0.1);
-        assert_relative_eq!(model.lambda, 995.6486, epsilon = 100.0);
-
-        for &(n, x) in MEASUREMENTS.iter() {
-            println!("{} / {} / {}", n, x, model.throughput_at_concurrency(n));
-        }
+        assert_relative_eq!(model.sigma, 0.02671591, max_relative = 0.00001);
+        assert_relative_eq!(model.kappa, 7.690945e-4, max_relative = 0.00001);
+        assert_relative_eq!(model.lambda, 995.6486, max_relative = 0.00001);
     }
 
     const MEASUREMENTS: [(f64, f64); 32] = [
