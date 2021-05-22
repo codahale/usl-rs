@@ -4,13 +4,13 @@
 //! ```
 //! use usl::{Model, Measurement};
 //! let measurements = vec![
-//!     Measurement::concurrency_and_throughput(1.0, 955.16),
-//!     Measurement::concurrency_and_throughput(5.0, 4315.54),
-//!     Measurement::concurrency_and_throughput(10.0, 7867.61),
-//!     Measurement::concurrency_and_throughput(15.0, 9645.37),
-//!     Measurement::concurrency_and_throughput(20.0, 10798.52),
-//!     Measurement::concurrency_and_throughput(25.0, 12075.41),
-//!     Measurement::concurrency_and_throughput(30.0, 12118.04),
+//!     Measurement::concurrency_and_throughput(1, 955.16),
+//!     Measurement::concurrency_and_throughput(5, 4315.54),
+//!     Measurement::concurrency_and_throughput(10, 7867.61),
+//!     Measurement::concurrency_and_throughput(15, 9645.37),
+//!     Measurement::concurrency_and_throughput(20, 10798.52),
+//!     Measurement::concurrency_and_throughput(25, 12075.41),
+//!     Measurement::concurrency_and_throughput(30, 12118.04),
 //! ];
 //! let model = Model::build(&measurements);
 //! println!("{}", model.throughput_at_concurrency(100.0));
@@ -31,6 +31,8 @@
     clippy::needless_borrow
 )]
 
+use std::time::Duration;
+
 use approx::relative_eq;
 use rmpfit::{MPFitter, MPResult};
 
@@ -38,30 +40,31 @@ use rmpfit::{MPFitter, MPResult};
 /// throughput, and latency. The third parameter is inferred from the other two.
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
-    /// The average number of concurrent events.
-    pub n: f64,
-    /// The long-term arrival rate of events, in events/sec.
-    pub x: f64,
-    /// The average duration of events, in seconds.
-    pub r: f64,
+    n: f64, // The average number of concurrent events.
+    x: f64, // The long-term arrival rate of events, in events/sec.
+    r: f64, // The average duration of events, in seconds.
 }
 
 impl Measurement {
     /// Create a measurement of a system's latency at a given level of concurrency. The throughput
     /// of the system is derived via Little's Law.
-    pub fn concurrency_and_latency(n: f64, r: f64) -> Measurement {
+    pub fn concurrency_and_latency(n: u32, r: Duration) -> Measurement {
+        let n = n.into();
+        let r = r.as_secs_f64();
         Measurement { n, x: n / r, r } // L, λ=L/W, W
     }
 
     /// Create a measurement of a system's throughput at a given level of concurrency. The latency
     /// of the system is derived via Little's Law.
-    pub fn concurrency_and_throughput(n: f64, x: f64) -> Measurement {
+    pub fn concurrency_and_throughput(n: u32, x: f64) -> Measurement {
+        let n = n.into();
         Measurement { n, x, r: n / x } // L, λ, W=L/λ
     }
 
     /// Create a measurement of a system's latency at a given level of throughput. The concurrency
     /// of the system is derived via Little's Law.
-    pub fn throughput_and_latency(x: f64, r: f64) -> Measurement {
+    pub fn throughput_and_latency(x: f64, r: Duration) -> Measurement {
+        let r = r.as_secs_f64();
         Measurement { n: x * r, x, r } // L=λW, W, λ
     }
 }
@@ -195,17 +198,17 @@ mod tests {
 
     #[test]
     fn measurement() {
-        let m = Measurement::concurrency_and_latency(3.0, 0.6);
+        let m = Measurement::concurrency_and_latency(3, Duration::from_millis(600));
         assert_relative_eq!(m.n, 3.0);
         assert_relative_eq!(m.r, 0.6);
         assert_relative_eq!(m.x, 5.0);
 
-        let m = Measurement::concurrency_and_throughput(3.0, 5.0);
+        let m = Measurement::concurrency_and_throughput(3, 5.0);
         assert_relative_eq!(m.n, 3.0);
         assert_relative_eq!(m.r, 0.6);
         assert_relative_eq!(m.x, 5.0);
 
-        let m = Measurement::throughput_and_latency(5.0, 0.6);
+        let m = Measurement::throughput_and_latency(5.0, Duration::from_millis(600));
         assert_relative_eq!(m.n, 3.0);
         assert_relative_eq!(m.r, 0.6);
         assert_relative_eq!(m.x, 5.0);
@@ -256,38 +259,38 @@ mod tests {
 
     const ACCURACY: f64 = 0.00001;
 
-    const MEASUREMENTS: [(f64, f64); 32] = [
-        (1.0, 955.16),
-        (2.0, 1878.91),
-        (3.0, 2688.01),
-        (4.0, 3548.68),
-        (5.0, 4315.54),
-        (6.0, 5130.43),
-        (7.0, 5931.37),
-        (8.0, 6531.08),
-        (9.0, 7219.8),
-        (10.0, 7867.61),
-        (11.0, 8278.71),
-        (12.0, 8646.7),
-        (13.0, 9047.84),
-        (14.0, 9426.55),
-        (15.0, 9645.37),
-        (16.0, 9897.24),
-        (17.0, 10097.6),
-        (18.0, 10240.5),
-        (19.0, 10532.39),
-        (20.0, 10798.52),
-        (21.0, 11151.43),
-        (22.0, 11518.63),
-        (23.0, 11806.0),
-        (24.0, 12089.37),
-        (25.0, 12075.41),
-        (26.0, 12177.29),
-        (27.0, 12211.41),
-        (28.0, 12158.93),
-        (29.0, 12155.27),
-        (30.0, 12118.04),
-        (31.0, 12140.4),
-        (32.0, 12074.39),
+    const MEASUREMENTS: [(u32, f64); 32] = [
+        (1, 955.16),
+        (2, 1878.91),
+        (3, 2688.01),
+        (4, 3548.68),
+        (5, 4315.54),
+        (6, 5130.43),
+        (7, 5931.37),
+        (8, 6531.08),
+        (9, 7219.8),
+        (10, 7867.61),
+        (11, 8278.71),
+        (12, 8646.7),
+        (13, 9047.84),
+        (14, 9426.55),
+        (15, 9645.37),
+        (16, 9897.24),
+        (17, 10097.6),
+        (18, 10240.5),
+        (19, 10532.39),
+        (20, 10798.52),
+        (21, 11151.43),
+        (22, 11518.63),
+        (23, 11806.0),
+        (24, 12089.37),
+        (25, 12075.41),
+        (26, 12177.29),
+        (27, 12211.41),
+        (28, 12158.93),
+        (29, 12155.27),
+        (30, 12118.04),
+        (31, 12140.4),
+        (32, 12074.39),
     ];
 }

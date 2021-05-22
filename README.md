@@ -49,13 +49,13 @@ use usl::{Model, Measurement};
 
 fn main() {
     let measurements = vec![
-        Measurement::concurrency_and_throughput(1.0, 65.0),
-        Measurement::concurrency_and_throughput(18.0, 996.0),
-        Measurement::concurrency_and_throughput(36.0, 1652.0),
-        Measurement::concurrency_and_throughput(72.0, 1853.0),
-        Measurement::concurrency_and_throughput(108.0, 1829.0),
-        Measurement::concurrency_and_throughput(144.0, 1775.0),
-        Measurement::concurrency_and_throughput(216.0, 1702.0),
+        Measurement::concurrency_and_throughput(1, 65.0),
+        Measurement::concurrency_and_throughput(18, 996.0),
+        Measurement::concurrency_and_throughput(36, 1652.0),
+        Measurement::concurrency_and_throughput(72, 1853.0),
+        Measurement::concurrency_and_throughput(108, 1829.0),
+        Measurement::concurrency_and_throughput(144, 1775.0),
+        Measurement::concurrency_and_throughput(216, 1702.0),
     ];
     let model = Model::build(&measurements);
     println!("{}", model.throughput_at_concurrency(100.0));
