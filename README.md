@@ -44,7 +44,23 @@ TK TK TK
 
 ### As A Library
 
-TK TK TK
+```rust
+use usl::{Model, Measurement};
+
+fn main() {
+    let measurements = vec![
+        Measurement::concurrency_and_throughput(1.0, 65.0),
+        Measurement::concurrency_and_throughput(18.0, 996.0),
+        Measurement::concurrency_and_throughput(36.0, 1652.0),
+        Measurement::concurrency_and_throughput(72.0, 1853.0),
+        Measurement::concurrency_and_throughput(108.0, 1829.0),
+        Measurement::concurrency_and_throughput(144.0, 1775.0),
+        Measurement::concurrency_and_throughput(216.0, 1702.0),
+    ];
+    let model = Model::build(&measurements);
+    println!("{}", model.throughput_at_concurrency(100.0));
+}
+```
 
 ## Performance
 
@@ -57,10 +73,9 @@ build                   time:   [9.4531 us 9.4605 us 9.4677 us]
 ## Further reading
 
 I strongly recommend [Practical Scalability Analysis with the Universal Scalability Law][PSA], a free e-book
-by [Baron Schwartz][BS], author of [High Performance MySQL][MySQL] and CEO of
-[VividCortex][VC]. Trying to use this library without actually understanding the concepts behind
-[Little's Law][LL], [Amdahl's Law][AL], and the [Universal Scalability Law][USL] will be difficult and potentially
-misleading.
+by [Baron Schwartz][BS], author of [High Performance MySQL][MySQL] and CEO of [VividCortex][VC]. Trying to use this
+library without actually understanding the concepts behind [Little's Law][LL], [Amdahl's Law][AL], and
+the [Universal Scalability Law][USL] will be difficult and potentially misleading.
 
 I also [wrote a blog post about my Java implementation of USL][usl4j].
 
