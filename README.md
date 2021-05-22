@@ -41,7 +41,7 @@ Now you can build a model and begin estimating things.
 ### As A CLI Tool
 
 ```
-cargo install usl
+cargo install usl --features=cli
 ```
 
 ```
