@@ -40,9 +40,12 @@ use rmpfit::{MPFitter, MPResult};
 /// throughput, and latency. The third parameter is inferred from the other two.
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
-    n: f64, // The average number of concurrent events.
-    x: f64, // The long-term arrival rate of events, in events/sec.
-    r: f64, // The average duration of events, in seconds.
+    /// The average number of concurrent events.
+    pub n: f64,
+    /// The long-term arrival rate of events, in events/sec.
+    pub x: f64,
+    /// The average duration of events, in seconds.
+    pub r: f64,
 }
 
 impl Measurement {

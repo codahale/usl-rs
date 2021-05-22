@@ -1,6 +1,6 @@
 # usl-rs
 
-`usl-rs` is a Go modeler for [Dr. Neil Gunther][NJG]'s [Universal Scalability Law][USL] as described
+`usl-rs` is a Rust modeler for [Dr. Neil Gunther][NJG]'s [Universal Scalability Law][USL] as described
 in [Baron Schwartz][BS]'s book [Practical Scalability Analysis with the Universal Scalability Law][PSA].
 
 Given a handful of measurements of any two [Little's Law][LL] parameters--throughput, latency, and
@@ -40,7 +40,46 @@ Now you can build a model and begin estimating things.
 
 ### As A CLI Tool
 
-TK TK TK
+```
+cargo install usl
+```
+
+```
+$ cat measurements.csv
+1,65
+18,996
+36,1652
+72,1853
+etc.
+```
+
+```
+usl --plot example.csv 10 50 100 150 200 250 300
+
+USL parameters: σ=0.028168, κ=90.691376, λ=0.000104
+	max throughput: 1882.421555, max concurrency: 96.000000
+	contention constrained
+⡁⠈ ⡡⠊⠙⠑⢚⢄⡁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⡁ 1882.2
+⠄ ⡜      ⠈⠑⠴⡀                                                                                       ⠄
+⠂⢰⠁         ⠈⠑⠢⣀                                                                                    ⠂
+⡁⡜              ⠉⠒⠤⣀                                                                                ⡁
+⠄⡇                  ⠉⠒⠤⢄⡀                                                                           ⠄
+⢢⠃                      ⠈⠉⠒⠢⠤⣀⡀                                                                     ⠂
+⣹⠁                            ⠈⠉⠑⠒⠢⠤⢄⣀⡀                                                             ⡁
+⢼                                     ⠈⠉⠉⠒⠒⠢⠤⠤⢄⣀⣀⡀                                                  ⠄
+⠊                                                ⠈⠉⠉⠉⠒⠒⠒⠒⠤⠤⠤⠤⢄⣀⣀⣀⣀⡀                                 ⠂
+⡁                                                                 ⠈⠉⠉⠉⠉⠉⠒⠒⠒⠒⠒⠒⠢⠤⠤⠤⠤⠤⠤⠤⣀⣀⣀⣀⣀⣀⣀⣀⣀     ⡁
+⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈ ⠁⠈⠉⠉⠉⠉⠉  405.7
+0.0                                                                                              1882.4
+10,718.1341832148264
+50,1720.7701516725795
+100,1881.977293350178
+150,1808.2668068616638
+200,1687.6636402563477
+250,1564.4594617061496
+300,1450.4659509826192
+```
+
 
 ### As A Library
 
