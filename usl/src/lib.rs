@@ -1,67 +1,133 @@
+//! Types and functions for building Universal Scalability Law models from sets of observed
+//! measurements.
+//!
+//! ```
+//! use usl::{Model, Measurement};
+//! let measurements = vec![
+//!     Measurement::concurrency_and_throughput(1.0, 955.16),
+//!     Measurement::concurrency_and_throughput(5.0, 4315.54),
+//!     Measurement::concurrency_and_throughput(10.0, 7867.61),
+//!     Measurement::concurrency_and_throughput(15.0, 9645.37),
+//!     Measurement::concurrency_and_throughput(20.0, 10798.52),
+//!     Measurement::concurrency_and_throughput(25.0, 12075.41),
+//!     Measurement::concurrency_and_throughput(30.0, 12118.04),
+//! ];
+//! let model = Model::build(&measurements);
+//! println!("{}", model.throughput_at_concurrency(100.0));
+//! ```
+//!
+
+#![forbid(unsafe_code)]
+#![warn(
+    missing_docs,
+    rust_2018_idioms,
+    trivial_casts,
+    unused_lifetimes,
+    unused_qualifications,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    clippy::cognitive_complexity,
+    clippy::missing_const_for_fn,
+    clippy::needless_borrow
+)]
+
 use approx::relative_eq;
 use rmpfit::{MPFitter, MPResult};
 
+/// A simultaneous measurement of at least two of the parameters of Little's Law: concurrency,
+/// throughput, and latency. The third parameter is inferred from the other two.
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
+    /// The average number of concurrent events.
     pub n: f64,
+    /// The long-term arrival rate of events, in events/sec.
     pub x: f64,
+    /// The average duration of events, in seconds.
     pub r: f64,
 }
 
 impl Measurement {
+    /// Create a measurement of a system's latency at a given level of concurrency. The throughput
+    /// of the system is derived via Little's Law.
     pub fn concurrency_and_latency(n: f64, r: f64) -> Measurement {
         Measurement { n, x: n / r, r } // L, λ=L/W, W
     }
 
+    /// Create a measurement of a system's throughput at a given level of concurrency. The latency
+    /// of the system is derived via Little's Law.
     pub fn concurrency_and_throughput(n: f64, x: f64) -> Measurement {
         Measurement { n, x, r: n / x } // L, λ, W=L/λ
     }
 
+    /// Create a measurement of a system's latency at a given level of throughput. The concurrency
+    /// of the system is derived via Little's Law.
     pub fn throughput_and_latency(x: f64, r: f64) -> Measurement {
         Measurement { n: x * r, x, r } // L=λW, W, λ
     }
 }
 
+/// A Universal Scalability Law model.
 #[derive(Debug, Copy, Clone)]
 pub struct Model {
+    /// The model's coefficient of contention, σ.
     pub sigma: f64,
+    /// The model's coefficient of crosstalk/coherency, κ.
     pub kappa: f64,
+    /// The model's coefficient of performance, λ.
     pub lambda: f64,
 }
 
 impl Model {
+    /// Build a model whose parameters are generated from the given measurements.
+    ///
+    /// Finds a set of coefficients for the equation `y = λx/(1+σ(x-1)+κx(x-1))` which best fit the
+    /// observed values using unconstrained least-squares regression. The resulting values for λ, κ,
+    /// and σ are the parameters of the returned model.
     pub fn build(measurements: &[Measurement]) -> Model {
         let fitter = ModelFitter(measurements.to_vec());
-        let mut params = vec![
-            0.1,
-            0.01,
-            measurements.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max),
-        ];
+        let kappa = measurements.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max);
+        let mut params = vec![0.1, 0.01, kappa];
         let res = fitter.mpfit(&mut params, None, &Default::default());
         assert!(res.is_ok());
         Model { sigma: params[0], kappa: params[1], lambda: params[2] }
     }
 
+    /// Calculate the expected throughput given a number of concurrent events, `X(N)`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 3".
     pub fn throughput_at_concurrency(&self, n: f64) -> f64 {
         (self.lambda * n) / (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0)))
     }
 
+    /// Calculate the expected mean latency given a number of concurrent events, `R(N)`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 6".
     pub fn latency_at_concurrency(&self, n: f64) -> f64 {
         (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0))) / self.lambda
     }
 
+    /// Calculate the maximum expected number of concurrent events the system can handle, `N{max}`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 4".
     pub fn max_concurrency(&self) -> f64 {
         (((1.0 - self.sigma) / self.kappa).sqrt()).floor()
     }
 
+    /// Calculate the maximum expected throughput the system can handle, `X{max}`.
     pub fn max_throughput(&self) -> f64 {
         self.throughput_at_concurrency(self.max_concurrency())
     }
 
+    /// Calculate the expected mean latency given a throughput, `R(X)`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 8".
     pub fn latency_at_throughput(&self, x: f64) -> f64 {
         (self.sigma - 1.0) / (self.sigma * x - self.lambda)
     }
 
+    /// Calculate the expected throughput given a mean latency, `X(R)`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 9".
     pub fn throughput_at_latency(&self, r: f64) -> f64 {
         ((self.sigma.powi(2)
             + self.kappa.powi(2)
@@ -72,6 +138,9 @@ impl Model {
             / (2.0 * self.kappa * r)
     }
 
+    /// Calculate the expected number of concurrent events at a particular mean latency, `N(R)`.
+    ///
+    /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 10".
     pub fn concurrency_at_latency(&self, r: f64) -> f64 {
         (self.kappa - self.sigma
             + (self.sigma.powi(2)
@@ -81,18 +150,22 @@ impl Model {
             / (2.0 * self.kappa)
     }
 
+    /// Calculate the expected number of concurrent events at a particular throughput, `N(X)`.
     pub fn concurrency_at_throughput(&self, x: f64) -> f64 {
         self.latency_at_throughput(x) * x
     }
 
+    /// Whether or not the system is constrained by contention effects.
     pub fn contention_constrained(&self) -> bool {
         self.sigma > self.kappa
     }
 
+    /// Whether or not the system is constrained by coherency effects.
     pub fn coherency_constrained(&self) -> bool {
         self.sigma < self.kappa
     }
 
+    /// Whether or not the system is linearly scalable.
     pub fn limitless(&self) -> bool {
         relative_eq!(self.kappa, 0.0)
     }
