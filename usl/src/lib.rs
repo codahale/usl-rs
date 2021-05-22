@@ -3,21 +3,22 @@ use rmpfit::{MPFitter, MPResult};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
-    x: f64,
-    n: f64,
+    pub n: f64,
+    pub x: f64,
+    pub r: f64,
 }
 
 impl Measurement {
     pub fn concurrency_and_latency(n: f64, r: f64) -> Measurement {
-        Measurement { x: n / r, n }
+        Measurement { n, x: n / r, r } // L, λ=L/W, W
     }
 
     pub fn concurrency_and_throughput(n: f64, x: f64) -> Measurement {
-        Measurement { x, n }
+        Measurement { n, x, r: n / x } // L, λ, W=L/λ
     }
 
     pub fn throughput_and_latency(x: f64, r: f64) -> Measurement {
-        Measurement { x, n: x * r }
+        Measurement { n: x * r, x, r } // L=λW, W, λ
     }
 }
 
@@ -120,6 +121,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn measurement() {
+        let m = Measurement::concurrency_and_latency(3.0, 0.6);
+        assert_relative_eq!(m.n, 3.0);
+        assert_relative_eq!(m.r, 0.6);
+        assert_relative_eq!(m.x, 5.0);
+
+        let m = Measurement::concurrency_and_throughput(3.0, 5.0);
+        assert_relative_eq!(m.n, 3.0);
+        assert_relative_eq!(m.r, 0.6);
+        assert_relative_eq!(m.x, 5.0);
+
+        let m = Measurement::throughput_and_latency(5.0, 0.6);
+        assert_relative_eq!(m.n, 3.0);
+        assert_relative_eq!(m.r, 0.6);
+        assert_relative_eq!(m.x, 5.0);
+    }
+
+    #[test]
     fn build() {
         let measurements: Vec<Measurement> = MEASUREMENTS
             .iter()
@@ -128,10 +147,41 @@ mod tests {
 
         let model = Model::build(&measurements);
 
-        assert_relative_eq!(model.sigma, 0.02671591, max_relative = 0.00001);
-        assert_relative_eq!(model.kappa, 7.690945e-4, max_relative = 0.00001);
-        assert_relative_eq!(model.lambda, 995.6486, max_relative = 0.00001);
+        assert_relative_eq!(model.sigma, 0.02671591, max_relative = ACCURACY);
+        assert_relative_eq!(model.kappa, 7.690945e-4, max_relative = ACCURACY);
+        assert_relative_eq!(model.lambda, 995.6486, max_relative = ACCURACY);
+        assert_relative_eq!(model.max_concurrency(), 35.0, max_relative = ACCURACY);
+        assert_relative_eq!(model.max_throughput(), 12341.7454, max_relative = ACCURACY);
+        assert_eq!(model.coherency_constrained(), false);
+        assert_eq!(model.contention_constrained(), true);
+        assert_eq!(model.limitless(), false);
+
+        assert_relative_eq!(model.latency_at_concurrency(1.0), 0.0010043702162450092);
+        assert_relative_eq!(model.latency_at_concurrency(20.0), 0.0018077244442155811);
+        assert_relative_eq!(model.latency_at_concurrency(35.0), 0.002835903510841524);
+
+        assert_relative_eq!(model.throughput_at_concurrency(1.0), 995.648799442353);
+        assert_relative_eq!(model.throughput_at_concurrency(20.0), 11063.633101824058);
+        assert_relative_eq!(model.throughput_at_concurrency(35.0), 12341.74571391328);
+
+        assert_relative_eq!(model.concurrency_at_throughput(955.0), 0.958099855673978);
+        assert_relative_eq!(model.concurrency_at_throughput(11048.0), 15.35043561102983);
+        assert_relative_eq!(model.concurrency_at_throughput(12201.0), 17.732208293896793);
+
+        assert_relative_eq!(model.throughput_at_latency(0.03), 7047.844027581335);
+        assert_relative_eq!(model.throughput_at_latency(0.04), 6056.536321602774);
+        assert_relative_eq!(model.throughput_at_latency(0.05), 5387.032125730636);
+
+        assert_relative_eq!(model.latency_at_throughput(7000.0), 0.0012036103337889738);
+        assert_relative_eq!(model.latency_at_throughput(6000.0), 0.001165116923601453);
+        assert_relative_eq!(model.latency_at_throughput(5000.0), 0.0011290093731056857);
+
+        assert_relative_eq!(model.concurrency_at_latency(0.03), 177.69840792284043);
+        assert_relative_eq!(model.concurrency_at_latency(0.04), 208.52453995951137);
+        assert_relative_eq!(model.concurrency_at_latency(0.05), 235.61469338193223);
     }
+
+    const ACCURACY: f64 = 0.00001;
 
     const MEASUREMENTS: [(f64, f64); 32] = [
         (1.0, 955.16),
