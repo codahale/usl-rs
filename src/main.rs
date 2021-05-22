@@ -37,11 +37,11 @@ fn main() -> Result<()> {
         model.max_throughput(),
         model.max_concurrency()
     );
-    if model.contention_constrained() {
+    if model.is_contention_constrained() {
         println!("\tcontention constrained");
-    } else if model.coherency_constrained() {
+    } else if model.is_coherency_constrained() {
         println!("\tcoherency constrained");
-    } else if model.limitless() {
+    } else if model.is_limitless() {
         println!("\tlinearly scalable");
     }
 

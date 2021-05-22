@@ -166,17 +166,17 @@ impl Model {
     }
 
     /// Whether or not the system is constrained by contention effects.
-    pub fn contention_constrained(&self) -> bool {
+    pub fn is_contention_constrained(&self) -> bool {
         self.sigma > self.kappa
     }
 
     /// Whether or not the system is constrained by coherency effects.
-    pub fn coherency_constrained(&self) -> bool {
+    pub fn is_coherency_constrained(&self) -> bool {
         self.sigma < self.kappa
     }
 
     /// Whether or not the system is linearly scalable.
-    pub fn limitless(&self) -> bool {
+    pub fn is_limitless(&self) -> bool {
         relative_eq!(self.kappa, 0.0)
     }
 }
@@ -235,9 +235,9 @@ mod tests {
         assert_relative_eq!(model.lambda, 995.6486, max_relative = ACCURACY);
         assert_eq!(model.max_concurrency(), 35);
         assert_relative_eq!(model.max_throughput(), 12341.7454, max_relative = ACCURACY);
-        assert_eq!(model.coherency_constrained(), false);
-        assert_eq!(model.contention_constrained(), true);
-        assert_eq!(model.limitless(), false);
+        assert_eq!(model.is_coherency_constrained(), false);
+        assert_eq!(model.is_contention_constrained(), true);
+        assert_eq!(model.is_limitless(), false);
 
         assert_relative_eq!(model.latency_at_concurrency(1), 0.0010043702162450092);
         assert_relative_eq!(model.latency_at_concurrency(20), 0.0018077244442155811);
