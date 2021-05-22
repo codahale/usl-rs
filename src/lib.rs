@@ -13,7 +13,7 @@
 //!     Measurement::concurrency_and_throughput(30, 12118.04),
 //! ];
 //! let model = Model::build(&measurements);
-//! println!("{}", model.throughput_at_concurrency(100.0));
+//! println!("{}", model.throughput_at_concurrency(100));
 //! ```
 //!
 
@@ -101,22 +101,24 @@ impl Model {
     /// Calculate the expected throughput given a number of concurrent events, `X(N)`.
     ///
     /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 3".
-    pub fn throughput_at_concurrency(&self, n: f64) -> f64 {
+    pub fn throughput_at_concurrency(&self, n: u32) -> f64 {
+        let n: f64 = n.into();
         (self.lambda * n) / (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0)))
     }
 
     /// Calculate the expected mean latency given a number of concurrent events, `R(N)`.
     ///
     /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 6".
-    pub fn latency_at_concurrency(&self, n: f64) -> f64 {
+    pub fn latency_at_concurrency(&self, n: u32) -> f64 {
+        let n: f64 = n.into();
         (1.0 + (self.sigma * (n - 1.0)) + (self.kappa * n * (n - 1.0))) / self.lambda
     }
 
     /// Calculate the maximum expected number of concurrent events the system can handle, `N{max}`.
     ///
     /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 4".
-    pub fn max_concurrency(&self) -> f64 {
-        (((1.0 - self.sigma) / self.kappa).sqrt()).floor()
+    pub fn max_concurrency(&self) -> u32 {
+        (((1.0 - self.sigma) / self.kappa).sqrt()).floor() as u32
     }
 
     /// Calculate the maximum expected throughput the system can handle, `X{max}`.
@@ -183,7 +185,7 @@ impl MPFitter for ModelFitter {
     fn eval(&self, params: &[f64], deviates: &mut [f64]) -> MPResult<()> {
         let model = Model { sigma: params[0], kappa: params[1], lambda: params[2] };
         for (d, m) in deviates.iter_mut().zip(self.0.iter()) {
-            *d = m.x - model.throughput_at_concurrency(m.n);
+            *d = m.x - model.throughput_at_concurrency(m.n as u32);
         }
         Ok(())
     }
@@ -229,19 +231,19 @@ mod tests {
         assert_relative_eq!(model.sigma, 0.02671591, max_relative = ACCURACY);
         assert_relative_eq!(model.kappa, 7.690945e-4, max_relative = ACCURACY);
         assert_relative_eq!(model.lambda, 995.6486, max_relative = ACCURACY);
-        assert_relative_eq!(model.max_concurrency(), 35.0, max_relative = ACCURACY);
+        assert_eq!(model.max_concurrency(), 35);
         assert_relative_eq!(model.max_throughput(), 12341.7454, max_relative = ACCURACY);
         assert_eq!(model.coherency_constrained(), false);
         assert_eq!(model.contention_constrained(), true);
         assert_eq!(model.limitless(), false);
 
-        assert_relative_eq!(model.latency_at_concurrency(1.0), 0.0010043702162450092);
-        assert_relative_eq!(model.latency_at_concurrency(20.0), 0.0018077244442155811);
-        assert_relative_eq!(model.latency_at_concurrency(35.0), 0.002835903510841524);
+        assert_relative_eq!(model.latency_at_concurrency(1), 0.0010043702162450092);
+        assert_relative_eq!(model.latency_at_concurrency(20), 0.0018077244442155811);
+        assert_relative_eq!(model.latency_at_concurrency(35), 0.002835903510841524);
 
-        assert_relative_eq!(model.throughput_at_concurrency(1.0), 995.648799442353);
-        assert_relative_eq!(model.throughput_at_concurrency(20.0), 11063.633101824058);
-        assert_relative_eq!(model.throughput_at_concurrency(35.0), 12341.74571391328);
+        assert_relative_eq!(model.throughput_at_concurrency(1), 995.648799442353);
+        assert_relative_eq!(model.throughput_at_concurrency(20), 11063.633101824058);
+        assert_relative_eq!(model.throughput_at_concurrency(35), 12341.74571391328);
 
         assert_relative_eq!(model.concurrency_at_throughput(955.0), 0.958099855673978);
         assert_relative_eq!(model.concurrency_at_throughput(11048.0), 15.35043561102983);

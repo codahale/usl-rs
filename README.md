@@ -97,7 +97,7 @@ fn main() {
         Measurement::concurrency_and_throughput(216, 1702.0),
     ];
     let model = Model::build(&measurements);
-    println!("{}", model.throughput_at_concurrency(100.0));
+    println!("{}", model.throughput_at_concurrency(100));
 }
 ```
 

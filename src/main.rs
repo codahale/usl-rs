@@ -16,7 +16,7 @@ struct Opts {
     plot: bool,
 
     #[argh(positional, description = "predict the throughput at the given concurrency levels")]
-    predictions: Vec<f64>,
+    predictions: Vec<u32>,
 }
 
 fn main() -> Result<()> {
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
             measurments.iter().map(|m| (m.n as f32, m.x as f32)).collect::<Vec<(f32, f32)>>();
         Chart::new(200, 40, 0.0, model.max_throughput() as f32)
             .lineplot(&Shape::Continuous(Box::new(|n| {
-                model.throughput_at_concurrency(n as f64) as f32
+                model.throughput_at_concurrency(n as u32) as f32
             })))
             .lineplot(&Shape::Points(&points))
             .nice();
