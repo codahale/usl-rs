@@ -136,7 +136,8 @@ impl Model {
     /// Calculate the expected throughput given a mean latency, `X(R)`.
     ///
     /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 9".
-    pub fn throughput_at_latency(&self, r: f64) -> f64 {
+    pub fn throughput_at_latency(&self, r: Duration) -> f64 {
+        let r = r.as_secs_f64();
         ((self.sigma.powi(2)
             + self.kappa.powi(2)
             + 2.0 * self.kappa * (2.0 * self.lambda * r + self.sigma - 2.0))
@@ -149,7 +150,8 @@ impl Model {
     /// Calculate the expected number of concurrent events at a particular mean latency, `N(R)`.
     ///
     /// See "Practical Scalability Analysis with the Universal Scalability Law, Equation 10".
-    pub fn concurrency_at_latency(&self, r: f64) -> f64 {
+    pub fn concurrency_at_latency(&self, r: Duration) -> f64 {
+        let r = r.as_secs_f64();
         (self.kappa - self.sigma
             + (self.sigma.powi(2)
                 + self.kappa.powi(2)
@@ -249,17 +251,35 @@ mod tests {
         assert_relative_eq!(model.concurrency_at_throughput(11048.0), 15.35043561102983);
         assert_relative_eq!(model.concurrency_at_throughput(12201.0), 17.732208293896793);
 
-        assert_relative_eq!(model.throughput_at_latency(0.03), 7047.844027581335);
-        assert_relative_eq!(model.throughput_at_latency(0.04), 6056.536321602774);
-        assert_relative_eq!(model.throughput_at_latency(0.05), 5387.032125730636);
+        assert_relative_eq!(
+            model.throughput_at_latency(Duration::from_millis(30)),
+            7047.844027581335
+        );
+        assert_relative_eq!(
+            model.throughput_at_latency(Duration::from_millis(40)),
+            6056.536321602774
+        );
+        assert_relative_eq!(
+            model.throughput_at_latency(Duration::from_millis(50)),
+            5387.032125730636
+        );
 
         assert_relative_eq!(model.latency_at_throughput(7000.0), 0.0012036103337889738);
         assert_relative_eq!(model.latency_at_throughput(6000.0), 0.001165116923601453);
         assert_relative_eq!(model.latency_at_throughput(5000.0), 0.0011290093731056857);
 
-        assert_relative_eq!(model.concurrency_at_latency(0.03), 177.69840792284043);
-        assert_relative_eq!(model.concurrency_at_latency(0.04), 208.52453995951137);
-        assert_relative_eq!(model.concurrency_at_latency(0.05), 235.61469338193223);
+        assert_relative_eq!(
+            model.concurrency_at_latency(Duration::from_millis(30)),
+            177.69840792284043
+        );
+        assert_relative_eq!(
+            model.concurrency_at_latency(Duration::from_millis(40)),
+            208.52453995951137
+        );
+        assert_relative_eq!(
+            model.concurrency_at_latency(Duration::from_millis(50)),
+            235.61469338193223
+        );
     }
 
     const ACCURACY: f64 = 0.00001;
