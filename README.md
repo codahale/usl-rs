@@ -1,6 +1,6 @@
-# usl-rs
+# usl
 
-`usl-rs` is a Rust modeler for [Dr. Neil Gunther][NJG]'s [Universal Scalability Law][USL] as described
+`usl` is a Rust modeler for [Dr. Neil Gunther][NJG]'s [Universal Scalability Law][USL] as described
 in [Baron Schwartz][BS]'s book [Practical Scalability Analysis with the Universal Scalability Law][PSA].
 
 Given a handful of measurements of any two [Little's Law][LL] parameters--throughput, latency, and
@@ -79,7 +79,6 @@ USL parameters: σ=0.028168, κ=90.691376, λ=0.000104
 250,1564.4594617061496
 300,1450.4659509826192
 ```
-
 
 ### As A Library
 
