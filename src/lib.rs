@@ -72,6 +72,48 @@ impl Measurement {
     }
 }
 
+impl From<(u32, f64)> for Measurement {
+    fn from(v: (u32, f64)) -> Self {
+        let (n, x) = v;
+        Measurement::concurrency_and_throughput(n, x)
+    }
+}
+
+impl From<(f64, u32)> for Measurement {
+    fn from(v: (f64, u32)) -> Self {
+        let (x, n) = v;
+        Measurement::concurrency_and_throughput(n, x)
+    }
+}
+
+impl From<(u32, Duration)> for Measurement {
+    fn from(v: (u32, Duration)) -> Self {
+        let (n, r) = v;
+        Measurement::concurrency_and_latency(n, r)
+    }
+}
+
+impl From<(Duration, u32)> for Measurement {
+    fn from(v: (Duration, u32)) -> Self {
+        let (r, n) = v;
+        Measurement::concurrency_and_latency(n, r)
+    }
+}
+
+impl From<(f64, Duration)> for Measurement {
+    fn from(v: (f64, Duration)) -> Self {
+        let (x, r) = v;
+        Measurement::throughput_and_latency(x, r)
+    }
+}
+
+impl From<(Duration, f64)> for Measurement {
+    fn from(v: (Duration, f64)) -> Self {
+        let (r, x) = v;
+        Measurement::throughput_and_latency(x, r)
+    }
+}
+
 /// A Universal Scalability Law model.
 #[derive(Debug, Copy, Clone)]
 pub struct Model {
@@ -237,11 +279,7 @@ mod tests {
 
     #[test]
     fn build() {
-        let measurements: Vec<Measurement> = MEASUREMENTS
-            .iter()
-            .map(|&(n, x)| Measurement::concurrency_and_throughput(n, x))
-            .collect();
-
+        let measurements: Vec<Measurement> = MEASUREMENTS.iter().map(|&v| v.into()).collect();
         let model = Model::build(&measurements);
 
         assert_relative_eq!(model.sigma, 0.02671591, max_relative = ACCURACY);

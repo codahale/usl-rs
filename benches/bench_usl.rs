@@ -3,8 +3,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use usl::{Measurement, Model};
 
 fn build(c: &mut Criterion) {
-    let measurements: Vec<Measurement> =
-        MEASUREMENTS.iter().map(|&(n, x)| Measurement::concurrency_and_throughput(n, x)).collect();
+    let measurements: Vec<Measurement> = MEASUREMENTS.iter().map(|&v| v.into()).collect();
     c.bench_function("build", |b| b.iter(|| Model::build(&measurements)));
 }
 
