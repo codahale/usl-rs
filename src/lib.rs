@@ -232,6 +232,13 @@ impl Model {
     }
 }
 
+impl FromIterator<Measurement> for Model {
+    fn from_iter<T: IntoIterator<Item = Measurement>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().collect();
+        Model::build(&measurements)
+    }
+}
+
 impl<'a> FromIterator<&'a (u32, f64)> for Model {
     fn from_iter<T: IntoIterator<Item = &'a (u32, f64)>>(iter: T) -> Self {
         let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
