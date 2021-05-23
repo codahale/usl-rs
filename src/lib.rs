@@ -31,6 +31,7 @@
     clippy::needless_borrow
 )]
 
+use std::iter::FromIterator;
 use std::time::Duration;
 
 use approx::relative_eq;
@@ -231,6 +232,48 @@ impl Model {
     }
 }
 
+impl<'a> FromIterator<&'a (u32, f64)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (u32, f64)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
+impl<'a> FromIterator<&'a (f64, u32)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (f64, u32)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
+impl<'a> FromIterator<&'a (u32, Duration)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (u32, Duration)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
+impl<'a> FromIterator<&'a (Duration, u32)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (Duration, u32)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
+impl<'a> FromIterator<&'a (f64, Duration)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (f64, Duration)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
+impl<'a> FromIterator<&'a (Duration, f64)> for Model {
+    fn from_iter<T: IntoIterator<Item = &'a (Duration, f64)>>(iter: T) -> Self {
+        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+        Model::build(&measurements)
+    }
+}
+
 struct ModelFitter(Vec<Measurement>);
 
 impl ModelFitter {
@@ -279,8 +322,7 @@ mod tests {
 
     #[test]
     fn build() {
-        let measurements: Vec<Measurement> = MEASUREMENTS.iter().map(|&v| v.into()).collect();
-        let model = Model::build(&measurements);
+        let model: Model = MEASUREMENTS.iter().collect();
 
         assert_relative_eq!(model.sigma, 0.02671591, max_relative = ACCURACY);
         assert_relative_eq!(model.kappa, 7.690945e-4, max_relative = ACCURACY);
