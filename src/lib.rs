@@ -89,47 +89,25 @@ impl Measurement {
     }
 }
 
-impl From<(u32, f64)> for Measurement {
-    fn from(v: (u32, f64)) -> Self {
-        let (n, x) = v;
-        Measurement::concurrency_and_throughput(n, x)
-    }
+macro_rules! from_tuple {
+    ($a:ty, $b:ty, $f:expr) => {
+        impl From<($a, $b)> for Measurement {
+            fn from(v: ($a, $b)) -> Self {
+                $f(v.0, v.1)
+            }
+        }
+
+        impl From<($b, $a)> for Measurement {
+            fn from(v: ($b, $a)) -> Self {
+                $f(v.1, v.0)
+            }
+        }
+    };
 }
 
-impl From<(f64, u32)> for Measurement {
-    fn from(v: (f64, u32)) -> Self {
-        let (x, n) = v;
-        Measurement::concurrency_and_throughput(n, x)
-    }
-}
-
-impl From<(u32, Duration)> for Measurement {
-    fn from(v: (u32, Duration)) -> Self {
-        let (n, r) = v;
-        Measurement::concurrency_and_latency(n, r)
-    }
-}
-
-impl From<(Duration, u32)> for Measurement {
-    fn from(v: (Duration, u32)) -> Self {
-        let (r, n) = v;
-        Measurement::concurrency_and_latency(n, r)
-    }
-}
-
-impl From<(f64, Duration)> for Measurement {
-    fn from(v: (f64, Duration)) -> Self {
-        let (x, r) = v;
-        Measurement::throughput_and_latency(x, r)
-    }
-}
-
-impl From<(Duration, f64)> for Measurement {
-    fn from(v: (Duration, f64)) -> Self {
-        let (r, x) = v;
-        Measurement::throughput_and_latency(x, r)
-    }
-}
+from_tuple!(u32, f64, Measurement::concurrency_and_throughput);
+from_tuple!(u32, Duration, Measurement::concurrency_and_latency);
+from_tuple!(f64, Duration, Measurement::throughput_and_latency);
 
 /// A Universal Scalability Law model.
 ///
@@ -269,47 +247,23 @@ impl FromIterator<Measurement> for Model {
     }
 }
 
-impl<'a> FromIterator<&'a (u32, f64)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (u32, f64)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
+macro_rules! from_iterator {
+    ($a:ty, $b:ty) => {
+        impl<'a> FromIterator<&'a ($a, $b)> for Model {
+            fn from_iter<T: IntoIterator<Item = &'a ($a, $b)>>(iter: T) -> Self {
+                let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
+                Model::build(&measurements)
+            }
+        }
+    };
 }
 
-impl<'a> FromIterator<&'a (f64, u32)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (f64, u32)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
-}
-
-impl<'a> FromIterator<&'a (u32, Duration)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (u32, Duration)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
-}
-
-impl<'a> FromIterator<&'a (Duration, u32)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (Duration, u32)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
-}
-
-impl<'a> FromIterator<&'a (f64, Duration)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (f64, Duration)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
-}
-
-impl<'a> FromIterator<&'a (Duration, f64)> for Model {
-    fn from_iter<T: IntoIterator<Item = &'a (Duration, f64)>>(iter: T) -> Self {
-        let measurements: Vec<Measurement> = iter.into_iter().map(|&m| m.into()).collect();
-        Model::build(&measurements)
-    }
-}
+from_iterator!(u32, f64);
+from_iterator!(f64, u32);
+from_iterator!(Duration, u32);
+from_iterator!(u32, Duration);
+from_iterator!(f64, Duration);
+from_iterator!(Duration, f64);
 
 struct ModelFitter(Vec<Measurement>);
 
