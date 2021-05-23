@@ -99,8 +99,7 @@ impl Model {
             MIN_MEASUREMENTS
         );
         let fitter = ModelFitter(measurements.to_vec());
-        let kappa = measurements.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max);
-        let mut params = vec![0.1, 0.01, kappa];
+        let mut params = fitter.init_params();
         let res = fitter.mpfit(&mut params, None, &Default::default());
         match res {
             Ok(_) => {}
@@ -202,6 +201,12 @@ impl Model {
 }
 
 struct ModelFitter(Vec<Measurement>);
+
+impl ModelFitter {
+    fn init_params(&self) -> Vec<f64> {
+        vec![0.1, 0.01, self.0.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max)]
+    }
+}
 
 impl MPFitter for ModelFitter {
     fn eval(&self, params: &[f64], deviates: &mut [f64]) -> MPResult<()> {
