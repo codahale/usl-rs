@@ -34,7 +34,7 @@
 use std::time::Duration;
 
 use approx::relative_eq;
-use rmpfit::{MPFitter, MPResult};
+use rmpfit::{MPError, MPFitter, MPResult};
 
 /// A simultaneous measurement of at least two of the parameters of Little's Law: concurrency,
 /// throughput, and latency. The third parameter is inferred from the other two.
@@ -83,6 +83,9 @@ pub struct Model {
     pub lambda: f64,
 }
 
+/// The minimum number of measurements required to build a model.
+pub const MIN_MEASUREMENTS: usize = 6;
+
 impl Model {
     /// Build a model whose parameters are generated from the given measurements.
     ///
@@ -90,11 +93,28 @@ impl Model {
     /// observed values using unconstrained least-squares regression. The resulting values for λ, κ,
     /// and σ are the parameters of the returned model.
     pub fn build(measurements: &[Measurement]) -> Model {
+        assert!(
+            measurements.len() >= MIN_MEASUREMENTS,
+            "must have at least {} measurements",
+            MIN_MEASUREMENTS
+        );
         let fitter = ModelFitter(measurements.to_vec());
         let kappa = measurements.iter().map(|m| m.x / m.n).fold(f64::NEG_INFINITY, f64::max);
         let mut params = vec![0.1, 0.01, kappa];
         let res = fitter.mpfit(&mut params, None, &Default::default());
-        assert!(res.is_ok());
+        match res {
+            Ok(_) => {}
+            Err(e) => match e {
+                MPError::Input => panic!("lma error: input"),
+                MPError::Nan => panic!("lma error: NaN"),
+                MPError::Empty => panic!("lma error: no data input"),
+                MPError::NoFree => panic!("lma error: no free parameters"),
+                MPError::InitBounds => panic!("lma error: bad initial values"),
+                MPError::Bounds => panic!("lma error: bad initial constraints"),
+                MPError::DoF => panic!("lma error: degree of freedom"),
+                MPError::Eval => panic!("lma error: eval"),
+            },
+        }
         Model { sigma: params[0], kappa: params[1], lambda: params[2] }
     }
 
