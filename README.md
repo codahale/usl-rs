@@ -22,7 +22,7 @@ Because response time tends to be a property of load (i.e. it rises as throughpu
 variable in your tests should be mean response time. This leaves either throughput or concurrency as your independent
 variable, but thanks to [Little's Law][LL] it doesn't matter which one you use. For the purposes of discussion, let's
 say you measure throughput as a function of the number of concurrent clients working at a fixed rate (e.g. you used
-[`wrk2`][wrk2]).
+[`vegeta`][vegeta]).
 
 After you're done load testing, you should have a set of measurements shaped like this:
 
@@ -139,6 +139,6 @@ Distributed under the Apache License 2.0 or MIT License.
 
 [VC]: https://www.vividcortex.com/
 
-[wrk2]: https://github.com/giltene/wrk2
+[vegeta]: https://github.com/tsenart/vegeta
 
 [usl4j]: https://codahale.com/usl4j-and-you/
