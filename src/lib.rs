@@ -39,6 +39,22 @@ use rmpfit::{MPFitter, MPResult};
 
 /// A simultaneous measurement of at least two of the parameters of Little's Law: concurrency,
 /// throughput, and latency. The third parameter is inferred from the other two.
+///
+/// [Measurement] instances can be created from pairs of dimensional types: `u32` for the number of
+/// concurrent events, `f64` for the average rate of events, and `Duration` for the average duration
+/// of events:
+///
+/// ```
+/// use usl::Measurement;
+/// use std::time::Duration;
+///
+/// let m: Measurement = (30, 1000.0).into();
+/// let m: Measurement = (1000.0, 30).into();
+/// let m: Measurement = (30, Duration::from_millis(200)).into();
+/// let m: Measurement = (Duration::from_millis(200), 30).into();
+/// let m: Measurement = (1000.0, Duration::from_millis(200)).into();
+/// let m: Measurement = (Duration::from_millis(200), 1000.0).into();
+/// ```
 #[derive(Debug, Copy, Clone)]
 pub struct Measurement {
     /// The average number of concurrent events.
@@ -116,6 +132,20 @@ impl From<(Duration, f64)> for Measurement {
 }
 
 /// A Universal Scalability Law model.
+///
+/// Can be built from an explicit slice of [Measurement] instances via [Model::build] or via
+/// `collect` on an iterator of [Measurement] instances or measurement tuples:
+///
+/// ```
+/// let m: usl::Model = vec![
+///     (10, 30.0),
+///     (20, 80.0),
+///     (30, 100.0),
+///     (40, 140.0),
+///     (50, 160.0),
+///     (60, 222.0),
+/// ].iter().collect();
+/// ```
 #[derive(Debug, Copy, Clone)]
 pub struct Model {
     /// The model's coefficient of contention, σ.
