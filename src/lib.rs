@@ -34,7 +34,7 @@
 use std::time::Duration;
 
 use approx::relative_eq;
-use rmpfit::{MPError, MPFitter, MPResult};
+use rmpfit::{MPFitter, MPResult};
 
 /// A simultaneous measurement of at least two of the parameters of Little's Law: concurrency,
 /// throughput, and latency. The third parameter is inferred from the other two.
@@ -100,19 +100,8 @@ impl Model {
         );
         let fitter = ModelFitter(measurements.to_vec());
         let mut params = fitter.init_params();
-        let res = fitter.mpfit(&mut params, None, &Default::default());
-        match res {
-            Ok(_) => {}
-            Err(e) => match e {
-                MPError::Input => panic!("lma error: input"),
-                MPError::Nan => panic!("lma error: NaN"),
-                MPError::Empty => panic!("lma error: no data input"),
-                MPError::NoFree => panic!("lma error: no free parameters"),
-                MPError::InitBounds => panic!("lma error: bad initial values"),
-                MPError::Bounds => panic!("lma error: bad initial constraints"),
-                MPError::DoF => panic!("lma error: degree of freedom"),
-                MPError::Eval => panic!("lma error: eval"),
-            },
+        if let Err(err) = fitter.mpfit(&mut params, None, &Default::default()) {
+            panic!("lma error: {}", err)
         }
         Model { sigma: params[0], kappa: params[1], lambda: params[2] }
     }
