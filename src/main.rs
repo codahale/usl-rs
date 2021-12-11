@@ -1,26 +1,29 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use argh::FromArgs;
+use clap::Parser;
 use textplots::{Chart, Plot, Shape};
 
 use usl::{Measurement, Model};
 
-#[derive(Debug, FromArgs)]
-#[argh(description = "build and evaluate Universal Scalability Law models")]
+/// Build and evaluate Universal Scalability Law models.
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
 struct Opts {
-    #[argh(positional, description = "path to input CSV")]
+    /// Path to input CSV file.
+    #[clap(value_hint = ValueHint::FilePath)]
     input: PathBuf,
 
-    #[argh(switch, long = "plot", description = "show plot of data")]
+    /// Show plot of data.
+    #[clap(long)]
     plot: bool,
 
-    #[argh(positional, description = "predict the throughput at the given concurrency levels")]
+    /// Predict the throughput at the given concurrency levels.
     predictions: Vec<u32>,
 }
 
 fn main() -> Result<()> {
-    let opts: Opts = argh::from_env();
+    let opts = Opts::parse();
 
     let mut measurments = Vec::new();
     let mut input = csv::Reader::from_path(&opts.input)?;
