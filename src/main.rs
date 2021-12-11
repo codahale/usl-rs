@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::Parser;
+use clap::{Parser, ValueHint};
 use textplots::{Chart, Plot, Shape};
 
 use usl::{Measurement, Model};
