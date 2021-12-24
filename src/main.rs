@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, ValueHint};
-use textplots::{Chart, Plot, Shape};
+use plotlib::page::Page;
+use plotlib::repr::Plot;
+use plotlib::style::{PointMarker, PointStyle};
+use plotlib::view::ContinuousView;
 
 use usl::{Measurement, Model};
 
@@ -23,7 +26,7 @@ struct Opts {
 }
 
 fn main() -> Result<()> {
-    let opts = Opts::parse();
+    let opts: Opts = Opts::parse();
 
     let mut measurments = Vec::new();
     let mut input = csv::Reader::from_path(&opts.input)?;
@@ -49,14 +52,36 @@ fn main() -> Result<()> {
     }
 
     if opts.plot {
-        let points =
-            measurments.iter().map(|m| (m.n as f32, m.x as f32)).collect::<Vec<(f32, f32)>>();
-        Chart::new(200, 40, 0.0, model.max_throughput() as f32)
-            .lineplot(&Shape::Continuous(Box::new(|n| {
-                model.throughput_at_concurrency(n as u32) as f32
-            })))
-            .lineplot(&Shape::Points(&points))
-            .nice();
+        let observed = measurments.iter().map(|m| (m.n, m.x)).collect::<Vec<(f64, f64)>>();
+        let max_n = observed.iter().map(|&(n, _)| n).fold(0.0, f64::max);
+        let observed =
+            Plot::new(observed).point_style(PointStyle::new().marker(PointMarker::Square));
+
+        let predicted = (0..(max_n as usize))
+            .step_by(max_n as usize / 10)
+            .map(|n| (n as f64, model.throughput_at_concurrency(n as u32)))
+            .collect();
+        let predicted =
+            Plot::new(predicted).point_style(PointStyle::new().marker(PointMarker::Circle));
+
+        let extrapolated = opts
+            .predictions
+            .iter()
+            .map(|&n| (n as f64, model.throughput_at_concurrency(n)))
+            .collect();
+        let extrapolated =
+            Plot::new(extrapolated).point_style(PointStyle::new().marker(PointMarker::Cross));
+
+        let v = ContinuousView::new()
+            .add(observed)
+            .add(predicted)
+            .add(extrapolated)
+            .x_range(0.0, max_n)
+            .y_range(0.0, model.max_throughput())
+            .x_label("concurrency")
+            .y_label("throughput");
+
+        println!("{}", Page::single(&v).dimensions(80, 20).to_text().unwrap());
     }
 
     for n in opts.predictions {
