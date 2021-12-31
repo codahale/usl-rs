@@ -1,6 +1,6 @@
 [package]
 name = "usl"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Coda Hale <coda.hale@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
