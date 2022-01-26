@@ -327,6 +327,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cognitive_complexity)]
     fn build() {
         let model: Model = MEASUREMENTS.iter().collect();
 
