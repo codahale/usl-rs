@@ -335,9 +335,9 @@ mod tests {
         assert_relative_eq!(model.lambda, 995.6486, max_relative = ACCURACY);
         assert_eq!(model.max_concurrency(), 35);
         assert_relative_eq!(model.max_throughput(), 12341.7454, max_relative = ACCURACY);
-        assert_eq!(model.is_coherency_constrained(), false);
-        assert_eq!(model.is_contention_constrained(), true);
-        assert_eq!(model.is_limitless(), false);
+        assert!(!model.is_coherency_constrained());
+        assert!(model.is_contention_constrained());
+        assert!(!model.is_limitless());
 
         assert_relative_eq!(model.latency_at_concurrency(1), 0.0010043702162450092);
         assert_relative_eq!(model.latency_at_concurrency(20), 0.0018077244442155811);
