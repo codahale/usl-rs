@@ -141,7 +141,7 @@ Distributed under the Apache License 2.0 or MIT License.
 
 [LL]: https://en.wikipedia.org/wiki/Little%27s_law
 
-[PSA]: https://www.vividcortex.com/resources/universal-scalability-law/
+[PSA]: https://github.com/VividCortex/ebooks/blob/master/scalability.pdf
 
 [USL]: http://www.perfdynamics.com/Manifesto/USLscalability.html
 
