@@ -14,14 +14,15 @@ use usl::{Measurement, Model};
 #[clap(author, version, about)]
 struct Opts {
     /// Path to input CSV file.
-    #[clap(value_hint = ValueHint::FilePath)]
+    #[clap(action, value_hint = ValueHint::FilePath)]
     input: PathBuf,
 
     /// Show plot of data.
-    #[clap(long)]
+    #[clap(action, long)]
     plot: bool,
 
     /// Predict the throughput at the given concurrency levels.
+    #[clap(action)]
     predictions: Vec<u32>,
 }
 
